@@ -1,0 +1,32 @@
+[
+  {
+    "model": "api.scraper",
+    "pk": 1,
+    "fields": {
+      "currency": "currency_one",
+      "frequency": 11,
+      "created_at": "2020-07-23 01:00:00",
+      "value": 10.0
+    }
+  },
+  {
+    "model": "api.scraper",
+    "pk": 2,
+    "fields": {
+      "currency": "currency_two",
+      "frequency": 12,
+      "created_at": "2020-07-23 02:00:00",
+      "value": 20.0
+    }
+  },
+    {
+    "model": "api.scraper",
+    "pk": 3,
+    "fields": {
+      "currency": "currency_three",
+      "frequency": 13,
+      "created_at": "2020-07-23 03:00:00",
+      "value": 30.0
+    }
+  }
+]
