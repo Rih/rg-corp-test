@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from django.views.generic import View
 from api.models import Scraper
 from django.views.decorators.csrf import csrf_exempt
@@ -9,6 +10,7 @@ from django.forms.models import model_to_dict
 from django.core.serializers.json import DjangoJSONEncoder
 from api.exceptions import FrequencyException
 from api.exceptions import check_frequency
+
 
 class ScraperAPI(View):
     def get(self, *args, **kwargs):

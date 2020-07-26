@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 from django.db import models
 from django.utils import timezone
 
@@ -12,7 +14,7 @@ class Scraper(models.Model):
         unique=True
     )
     frequency = models.IntegerField(null=False)
-    value = models.FloatField(default=0.0, null=False)
+    value = models.CharField(max_length=20, default='$ 0.0', null=False)
     updated_at = models.DateTimeField(
         null=True,
         auto_now=True
