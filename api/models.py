@@ -8,7 +8,7 @@ class Scraper(models.Model):
         editable=True
     )
     currency = models.CharField(
-        max_length=25,
+        max_length=50,
         unique=True
     )
     frequency = models.IntegerField(null=False)

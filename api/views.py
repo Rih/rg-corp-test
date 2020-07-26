@@ -7,12 +7,12 @@ import json
 from django.db.utils import IntegrityError
 from django.forms.models import model_to_dict
 from django.core.serializers.json import DjangoJSONEncoder
-
+from api.exceptions import FrequencyException
+from api.exceptions import check_frequency
 
 class ScraperAPI(View):
     def get(self, *args, **kwargs):
         scrappers = Scraper.objects.all()
-        print(scrappers)
         final_json = json.dumps(list(scrappers.values()), cls=DjangoJSONEncoder)
         return HttpResponse(
             final_json,
@@ -21,21 +21,39 @@ class ScraperAPI(View):
 
     def post(self, request, *args, **kwargs):
         data = json.loads(request.body)
-        print(data)
-        scraper = Scraper.objects.create(
-            currency=data.get('currency'),
-            frequency=data.get('frequency')
-        )
-        dict_obj = model_to_dict(scraper)
-        final_json = json.dumps(dict_obj, cls=DjangoJSONEncoder)
-        return HttpResponse(
-            final_json,
-            content_type='application/json'
-        )
+        try:
+            check_frequency(data.get('frequency'))
+            scraper = Scraper.objects.create(
+                currency=data.get('currency'),
+                frequency=data.get('frequency')
+            )
+            dict_obj = model_to_dict(scraper)
+            final_json = json.dumps(dict_obj, cls=DjangoJSONEncoder)
+            return HttpResponse(
+                final_json,
+                content_type='application/json'
+            )
+        except IntegrityError:
+            return HttpResponse(
+                json.dumps({
+                    'error': 'currency invalid',
+                }),
+                content_type='application/json',
+                status=400
+            )
+        except FrequencyException:
+            return HttpResponse(
+                json.dumps({
+                    'error': 'frequency invalid',
+                }),
+                content_type='application/json',
+                status=400
+            )
 
     def put(self, request, *args, **kwargs):
         data = json.loads(request.body)
         try:
+            check_frequency(data.get('frequency'))
             scraper = Scraper.objects.get(
                 pk=data.get('id')
             )
@@ -43,27 +61,35 @@ class ScraperAPI(View):
             scraper.save()
             if scraper.frequency == data.get('frequency'):
                 return HttpResponse(
-                    json.dumps({"msg": "msg"}),
+                    json.dumps({'msg': 'Scraper updated'}),
                     content_type='application/json',
                 )
             return HttpResponse(
-                json.dumps({"error": "error_msg"}),
+                json.dumps({'error': 'error_msg'}),
                 content_type='application/json',
                 status=400
             )
         except Scraper.DoesNotExist:
             return HttpResponse(
-                json.dumps({"error": "not valid id"}),
+                json.dumps({'error': 'not valid id'}),
                 content_type='application/json',
                 status=400
             )
         except IntegrityError:
             return HttpResponse(
-                json.dumps({"error": "not valid frequency"}),
+                json.dumps({'error': 'not valid frequency'}),
                 content_type='application/json',
                 status=400
             )
-
+        except FrequencyException:
+            return HttpResponse(
+                json.dumps({
+                    'error': 'frequency invalid',
+                }),
+                content_type='application/json',
+                status=400
+            )
+        
     def delete(self, request, *args, **kwargs):
         data = json.loads(request.body)
         try:
@@ -72,12 +98,12 @@ class ScraperAPI(View):
             )
             scraper.delete()
             return HttpResponse(
-                json.dumps({"msg": "msg_deleted"}),
+                json.dumps({'msg': 'Scraper deleted'}),
                 content_type='application/json',
             )
         except Scraper.DoesNotExist:
             return HttpResponse(
-                json.dumps({"error": "not valid id"}),
+                json.dumps({'error': 'not valid id'}),
                 content_type='application/json',
                 status=400
             )
