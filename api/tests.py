@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from api.models import Scraper
 from api.scrapper.crypto import Job
+from api.scrapper.crypto2 import Job2
 
 
 # Create your tests here.
@@ -95,7 +96,8 @@ class ScraperTestCase(TestCase):
         python3.7 manage.py test api.tests.ScraperTestCase.test_webscrap_get
         :return: assertions
         '''
-        sc = list(Scraper.objects.all().values_list('currency', flat=True))
+        sc = list(Scraper.objects.all().values_list('currency', 'page_found', 'frequency'))
         print(sc)
-        response = Job(sc).run()
+        # response = Job(sc).run()
+        response = Job2(sc).run()
         print(response)

@@ -44,7 +44,7 @@ export default (state = initialState, action) => {
       case SET_FREQUENCY:
       return {
         ...state,
-        scraper: { ...state.scraper, frequency: action.payload}
+        scraper: { ...state.scraper, frequency: Number(action.payload)}
       }
     case CREATE_SCRAPER:
       return {

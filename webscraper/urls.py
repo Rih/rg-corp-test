@@ -17,8 +17,11 @@ from django.contrib import admin
 from django.urls import path
 
 from api.views import ScraperAPI
+from api.background import main_scraper
 
 urlpatterns = [
     path('api/scrapers', ScraperAPI.as_view(), name='scrapers'),
     path('admin/', admin.site.urls),
 ]
+
+main_scraper(verbose_name='main_process', repeat_until=None)

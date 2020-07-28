@@ -3,6 +3,7 @@
 from django.db import models
 from django.utils import timezone
 
+
 class Scraper(models.Model):
     id = models.AutoField(primary_key=True)
     created_at = models.DateTimeField(
@@ -19,10 +20,17 @@ class Scraper(models.Model):
         null=True,
         auto_now=True
     )
+    page_found = models.IntegerField(default=0, null=False)
+    tobe_found = models.IntegerField(default=True, null=False)
 
     def save(self, *args, **kwargs):
         ''' On save, update timestamps '''
         if not self.id:
             self.created_at = timezone.now()
-        self.updated_at = timezone.now()
+        # self.updated_at = timezone.now()
         return super(Scraper, self).save(*args, **kwargs)
+    
+    # def update(self, *args, **kwargs):
+    #     ''' On update, update timestamps '''
+    #     self.updated_at = timezone.now()
+    #     return super(Scraper, self).update(*args, **kwargs)

@@ -54,7 +54,7 @@ class Job(object):
         
     def fetch_currencies(self, page=0, step=1):
         init_page = page
-        while len(self.currency_targets) and (page - init_page) <= jump:
+        while True:
             URL = f'{WEB_SCRAPER_URL}/{page}'
             print('fetching... ', URL)
             r = requests.get(URL)
@@ -103,37 +103,37 @@ class Job(object):
                     sleep(1)
             sleep(2)
         Scraper.objects.bulk_update(self.scrapers_obj, ['value'])
-        
-    def step(self, func):
-        x = [threading.Thread(target=func, args=(jump * i,))
-             for i in range(num_threads)
-        ]
-        for num in range(num_threads):
+
+    def step(self, func, threads=num_threads, step=1):
+        x = [threading.Thread(target=func, args=(step * i,))
+             for i in range(threads + 1)
+             ]
+        for num in range(threads):
             x[num].start()
-        
+
     # def step2(self):
     #     y = [threading.Thread(target=self.set_currencies, args=(jump * j))
     #          for j in range(num_threads)
     #     ]
     #     for num in range(num_threads):
     #         y[num].start()
-        # x1 = threading.Thread(target=self.set_currencies, args=())
-        # x2 = threading.Thread(target=self.set_currencies, args=(jump))
-        # x3 = threading.Thread(target=self.set_currencies, args=(jump*2))
-        # x4 = threading.Thread(target=self.set_currencies, args=(jump*3))
-        # x1.start()
-        # x2.start()
-        # x3.start()
-        # x4.start()
+    # x1 = threading.Thread(target=self.set_currencies, args=())
+    # x2 = threading.Thread(target=self.set_currencies, args=(jump))
+    # x3 = threading.Thread(target=self.set_currencies, args=(jump*2))
+    # x4 = threading.Thread(target=self.set_currencies, args=(jump*3))
+    # x1.start()
+    # x2.start()
+    # x3.start()
+    # x4.start()
 
     def step3(self):
         x1 = threading.Thread(target=self.update_currencies, args=())
         x1.start()
 
     def run(self):
-        self.step(self.fetch_currencies)
-        self.step(self.set_currencies)
-        self.step3()
+        self.step(self.fetch_currencies, MAX_PAGE)
+        # self.step(self.set_currencies)
+        # self.step3()
 
     
 def main():
