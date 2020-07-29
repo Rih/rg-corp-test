@@ -49,7 +49,6 @@ const ScraperView = (props) => {
   return (
     // Edit this as you like!
     <CardContainer 
-        height='30vh' 
         width='50%' 
         margin='2rem auto' 
         padding='2rem' 

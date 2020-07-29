@@ -1,31 +1,37 @@
 from background_task import background
 from api.models import Scraper
 from api.scrapper.crypto import Job
-from django.contrib.auth.models import User
 
+'''
+Note:
+please run: python manage.py process_tasks
+'''
 
-def main_sc():
-    freqs = Scraper.objects.all().values_list('frequency', flat=True)
-    uniq_freq = set(freqs)
-    for freq in uniq_freq:
-        scrapers = list(Scraper.objects.filter(frequency=freq).values_list('currency', 'page_found'))
-        print(scrapers)
+@background()
+def init_tasks():
+    found_missing_scraper_page(verbose_name='search', repeat_until=None)
+    main_scraper(verbose_name='main_process', repeat_until=None)
+    while True:
+        pass
 
 
 @background(schedule=60)
 def main_scraper():
     print('background setting up')
-    freqs = Scraper.objects.all().values_list('frequency', flat=True)
-    uniq_freq = set(freqs)
-    start_over(uniq_freq)
+    freqs = list(Scraper.objects.all().values_list('frequency', flat=True))
+    print('freq', freqs)
+    start_over(freqs)
     
 @background()
-def start_over(uniq_freq):
+def start_over(freqs):
+    uniq_freq = set(freqs)
     print('start over', uniq_freq)
     for freq in uniq_freq:
         scrapers = list(
-            Scraper.objects.filter(frequency=freq).values_list('currency',
-                                                               'page_found'))
+            Scraper.objects
+                .filter(frequency=freq)
+                .values_list('currency', 'page_found')
+        )
         scraper_names = [c for c, p in scrapers]
         print(freq)
         print(scraper_names)
