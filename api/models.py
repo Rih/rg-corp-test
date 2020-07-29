@@ -22,6 +22,12 @@ class Scraper(models.Model):
     )
     page_found = models.IntegerField(default=0, null=False)
     tobe_found = models.IntegerField(default=True, null=False)
+    
+    def __str__(self):
+        return f'{self.currency} - {self.frequency}'
+
+    def __unicode__(self):
+        return f'{self.currency} - {self.frequency}'
 
     def save(self, *args, **kwargs):
         ''' On save, update timestamps '''

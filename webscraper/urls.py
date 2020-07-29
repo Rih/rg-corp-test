@@ -17,11 +17,12 @@ from django.contrib import admin
 from django.urls import path
 
 from api.views import ScraperAPI
-from api.background import main_scraper
+from api.background import main_scraper, found_missing_scraper_page
 
 urlpatterns = [
     path('api/scrapers', ScraperAPI.as_view(), name='scrapers'),
     path('admin/', admin.site.urls),
 ]
 
+found_missing_scraper_page(verbose_name='search', repeat_until=None)
 main_scraper(verbose_name='main_process', repeat_until=None)
