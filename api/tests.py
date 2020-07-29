@@ -11,17 +11,18 @@ from django.conf import settings
 from django.test.utils import override_settings
 from api.models import Scraper
 from api.scrapper.crypto import Job
-
+from api.background import main_sc
 
 # Create your tests here.
 @override_settings(ENVIRONMENT='UNIT_TEST')
 class ScraperTestCase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.scraper1 = ScraperFactory(currency='Ethereum')
-        self.scraper2 = ScraperFactory(currency='Hive')
-        self.scraper2 = ScraperFactory(currency='CyberVein')
-        self.scraper3 = ScraperFactory(currency='Cardano')
+        self.scraper1 = ScraperFactory(currency='Ethereum', frequency=2)
+        self.scraper2 = ScraperFactory(currency='Hive', frequency=5)
+        self.scraper2 = ScraperFactory(currency='CyberVein', frequency=5)
+        self.scraper3 = ScraperFactory(currency='Cardano', frequency=2)
+        self.scraper3 = ScraperFactory(currency='Aragon', frequency=3)
 
     def test_scraper_get(self):
         '''
@@ -95,7 +96,11 @@ class ScraperTestCase(TestCase):
         python3.7 manage.py test api.tests.ScraperTestCase.test_webscrap_get
         :return: assertions
         '''
-        sc = list(Scraper.objects.all().values_list('currency', flat=True))
-        print(sc)
-        response = Job(sc).run()
-        print(response)
+        # main_sc()
+        scrapers = list(
+            Scraper.objects.filter(frequency=2).values_list('currency',
+                                                               'page_found'))
+        print(scrapers)
+        # # response = Job(sc).run()
+        response = Job(scrapers).run_pages()
+        # print(response)

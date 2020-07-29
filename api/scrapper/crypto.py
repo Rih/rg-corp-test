@@ -20,41 +20,59 @@ from sqlite3 import OperationalError
 QUEUE = []
 WEB_SCRAPER_URL = 'https://coinmarketcap.com'
 PAGE = 0
-MAX_PAGE = 28
-jump = 7
+MAX_PAGE = 30
+jump = 4
 num_threads = int(MAX_PAGE / jump)
-
-
-def extract_by_regex(data):
-    # <tr class=\"cmc-table-row\".*<a href=.*title=\"(\w+)\".*class=\"cmc-link\">.*class=\"cmc-link\">([\$\,\.\d+]+).*<\/tr>$
-    # <tr class="cmc-table-row".*<a href=.*title="([\w\s]+)".*class="cmc-link">([\$\,\.\d+]+).*<\/tr>$
-    # <tr class="cmc-table-row".*<a href=.*title="([\w\s]+)".*class="cmc-link">([\$\,\.\d]+)</a>
-    # p = re.compile(bytes(r'<tr class="cmc-table-row"(.*)<a href=(.+)title="([\w\s]+)"(.+)class="cmc-link">([\$\.\d]+)</a>(.*)</tr>', encoding='utf8'))
-    # p = re.compile(bytes(
-    #     r'<tr class="cmc-table-row".+<a href=.+title="([\w\s]+)".+class="cmc-link">([\$\.\d]+)</a>',
-    #     encoding='utf8'))
-    p = re.compile(bytes(r'<a href=(.+)title="([\w\s]+)"(.+)class="cmc-link">([\$\.\d]+)</a>', encoding='utf8'))
-    print(data)
-    matches = p.findall(data)
-    matches_iter = p.finditer(data)
-    print(matches[0][2], matches[0][4])
-    print(matches[1][2], matches[1][4])
-    # for iter in matches_iter:
-    #     print(iter.span())
-    # print(matches[1][2])
+pages = [p for p in range(MAX_PAGE)]
+MAX_THREADS = 6
+MAX_RETRIES = 5
 
 
 class Job(object):
 
-    def __init__(self, currencies):
-        self.currency_targets = {currency: 'to_update' for currency in currencies}
-        self.currency_fetched = {}
-        self.currency_done = {}
+    def __init__(self, currencies, mode='set_pages'):
+        self.pages = pages
+        self.currencies = currencies
+        self.mode = mode
+        self.valid_pages = [p for c, p in currencies]
+        print('valid pages... ', self.valid_pages)
+        self.currency_targets = self.set_targets(currencies)
+        self.currencies_fetched = {}
+        self.currencies_found = {}
+        self.scraping_done = False
         self.scrapers_obj = []
         
-    def fetch_currencies(self, page=0, step=1):
+    def set_targets(self, currencies):
+        targets = {}
+        for currency, page in currencies:
+            targets[currency] = {'to_update': True, 'page': page}
+        return targets
+    
+    # when added or removed
+    def reset_pages(self):
+        self.pages = pages
+
+    def set_currency(self, currency):
+        self.currency = currency
+    
+    @staticmethod
+    def set_next_page(page):
+        if page < 0:
+            page = MAX_PAGE
+        if page > MAX_PAGE:
+            page = 0
+        return page
+    
+    #  asuming the currency probably will be moved
+    #  one step page forward or backward
+    def set_valid_pages(self, old_page, new_page):
+        self.valid_pages.remove(old_page)
+        self.valid_pages.append(new_page)
+
+    def fetch(self, page=0, max_try=1, step=1):
         init_page = page
-        while len(self.currency_targets) and (page - init_page) <= jump:
+        attempt = 1
+        while attempt <= max_try and page < MAX_PAGE:
             URL = f'{WEB_SCRAPER_URL}/{page}'
             print('fetching... ', URL)
             r = requests.get(URL)
@@ -67,88 +85,135 @@ class Job(object):
                 currency = columns[1].text
                 value = columns[3].text
                 currencies[currency] = value
-            self.currency_fetched[str(page)] = currencies
+            self.currencies_fetched[str(page)] = currencies
+            # else:
+            #     print('page: ', page)
+            if self.mode == 'refresh':
+                break
             page += step
-            sleep(2)
-    
-    def set_currencies(self, page=0, step=1):
+            attempt += 1
+            sleep(0.1)
+    '''
+        asdfas
+        @returns
+    '''
+    def fetch_currencies(self, page=0, step=1):
         init_page = page
-        while len(self.currency_targets) and (page - init_page) <= jump:
-            if self.currency_fetched.get(str(page)):
-                print('processing page... ', page)
-                for currency, value in self.currency_fetched.get(str(page)).items():
-                    if self.currency_targets.get(currency) == 'to_update':
-                        self.currency_done[currency] = value
-                        del self.currency_targets[currency]
-                del self.currency_fetched[str(page)]
+        while len(self.currency_targets) != len(self.currencies_found) and (page - init_page) <= MAX_PAGE:
+            if self.currencies_fetched.get(str(page)):
                 page += step
-            else:
-                print('not available page... ', page)
-            sleep(2)
-
-    def update_currencies(self):
-        while len(self.currency_targets):
-            if len(self.currency_done):
-                print('loop through currency done... ')
-                while self.currency_done:
-                    currency, value = self.currency_done.popitem()
-                    print('update: ', currency, value)
-                    try:
-                        scraper = Scraper.objects.filter(currency=currency).first()
-                        scraper.value = value
-                        self.scrapers_obj.append(scraper)
-                    except OperationalError as er:
-                        print(er)
-                        self.currency_done[currency] = value
-                    sleep(1)
-            sleep(2)
-        Scraper.objects.bulk_update(self.scrapers_obj, ['value'])
-        
-    def step(self, func):
-        x = [threading.Thread(target=func, args=(jump * i,))
-             for i in range(num_threads)
-        ]
-        for num in range(num_threads):
-            x[num].start()
-        
-    # def step2(self):
-    #     y = [threading.Thread(target=self.set_currencies, args=(jump * j))
-    #          for j in range(num_threads)
-    #     ]
-    #     for num in range(num_threads):
-    #         y[num].start()
-        # x1 = threading.Thread(target=self.set_currencies, args=())
-        # x2 = threading.Thread(target=self.set_currencies, args=(jump))
-        # x3 = threading.Thread(target=self.set_currencies, args=(jump*2))
-        # x4 = threading.Thread(target=self.set_currencies, args=(jump*3))
-        # x1.start()
-        # x2.start()
-        # x3.start()
-        # x4.start()
-
-    def step3(self):
-        x1 = threading.Thread(target=self.update_currencies, args=())
-        x1.start()
-
-    def run(self):
-        self.step(self.fetch_currencies)
-        self.step(self.set_currencies)
-        self.step3()
-
+                continue
+            URL = f'{WEB_SCRAPER_URL}/{page}'
+            print('fetching... ', URL)
+            r = requests.get(URL)
+            # content = r.content
+            soup = BeautifulSoup(r.text, "lxml")
+            rows = soup.select('tr[class="cmc-table-row"]')
+            currencies = {}
+            for row in rows:
+                columns =list(row.children)
+                currency = columns[1].text
+                value = columns[3].text
+                currencies[currency] = value
+            self.currencies_fetched[str(page)] = currencies
+            # else:
+            #     print('page: ', page)
+            page += step
+            sleep(0.12)
+        self.scraping_done = True
     
-def main():
-    """
-    Push callback method and url to queue
-    """
-    job = Job()
-    QUEUE.append(
-        (job.fetch_currencies, WEB_SCRAPER_URL)
-    )
-    #
-    while len(QUEUE):
-        call_back, url = QUEUE.pop(0)
-        call_back(url)
+    def find_currency(self, start, name, init_page=0, current_page=0, step=1, all_page=False):
+        if init_page == current_page and not start:
+            return False
+        # find
+        if self.currencies_fetched.get(str(current_page)):
+            print('processing page... ', current_page)
+            for currency, value in self.currencies_fetched.get(str(current_page)).items():
+                found_currency = self.currency_targets.get(currency)
+                if found_currency and found_currency.get('to_update'):
+                    self.currencies_found[currency] = {
+                        'value': value,
+                        'page': current_page
+                    }
+            if len(self.currencies_found) == len(self.currency_targets):
+                return True
+            
+        if start:
+            next = current_page + 1
+            prev = current_page - 1
+            found_right = self.find_currency(name, False, init_page, next, 1, all_page)
+            found_prev = self.find_currency(name, False, init_page, prev, -1, all_page)
+            return found_prev or found_right
+        next_page = current_page + step
+        next_page = Job.set_next_page(next_page)
+        return self.find_currency(name, False, init_page, next_page, step, all_page)
 
+    def search_currency(self, name, page):
+        print('searching...', name, 'in page:', page)
+        found = self.find_currency(name, True, page, page, 1, True)
+        if not found:
+            Scraper.objects.filter(currency=name).update(tobe_found=True)
 
-if __name__ == '__main__':
-    main()
+    def update_currency(self, currency):
+        self.set_currency(currency)
+    
+    def set_currency_page(self, currency):
+        values = self.currencies_found.get(currency)
+        scraper = Scraper.objects.filter(currency=currency).get()
+        scraper.page_found = values['page']
+        scraper.tobe_found = not(self.currencies_found.get(currency))
+        return scraper
+
+    def set_currency_value(self, currency):
+        values = self.currencies_found.get(currency)
+        scraper = Scraper.objects.filter(currency=currency).get()
+        scraper.value = values['value']
+        scraper.tobe_found = not(self.currencies_found.get(currency))
+        return scraper
+
+    def step(self, func, threads=num_threads, tries=1):
+        x = [
+            threading.Thread(target=func, args=(i, tries, threads))
+            for i in range(threads)
+        ]
+        for num in range(threads):
+            x[num].start()
+        for n in range(threads):
+            x[num].join()
+        
+    def step_scraping(self):
+        x = [
+            threading.Thread(target=self.fetch_currencies, args=(page, 1))
+            for page in self.valid_pages
+        ]
+        for num in range(len(self.valid_pages)):
+            x[num].start()
+            
+    def step_search(self):
+        y = [
+            threading.Thread(target=self.search_currency, args=(currency, page))
+            for currency, page in self.currencies
+         ]
+        for num in range(len(self.currencies)):
+            y[num].start()
+        for n in range(len(self.currencies)):
+            y[n].join()
+            
+    def step_update(self, func, columns):
+        self.currencies_obj = []
+        for currency, page in self.currencies:
+            self.currencies_obj.append(func(currency))
+        Scraper.objects.bulk_update(self.currencies_obj, columns)
+
+    def run_pages(self):
+        self.step(self.fetch, MAX_THREADS, MAX_RETRIES)
+        self.scraping_done = True
+        self.step_search()
+        self.step_update(self.set_currency_page, ['page_found', 'tobe_found'])
+        
+    def run_values(self):
+        self.fetch(1, 1)
+        self.step_search()
+        self.step_update(self.set_currency_value, ['value', 'tobe_found'])
+        # self.step(self.set_currencies)
+        # self.step3()

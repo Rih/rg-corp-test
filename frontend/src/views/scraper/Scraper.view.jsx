@@ -14,7 +14,8 @@ import {
   onSetFrequency, 
   onSetCurrency, 
   setCurrency, 
-  updateCurrency 
+  updateCurrency,
+  fetchCurrencies
 } from '../../store/actions'
 import { reduce } from 'lodash'
 
@@ -48,7 +49,6 @@ const ScraperView = (props) => {
   return (
     // Edit this as you like!
     <CardContainer 
-        height='30vh' 
         width='50%' 
         margin='2rem auto' 
         padding='2rem' 
@@ -70,7 +70,8 @@ const ScraperView = (props) => {
           </InputContainer>
           <hr />
           <InputContainer>
-          <Input type="button" id="update" name="update" onClick={() => dispatch(updateCurrency(scraper))} value="Actualizar" />
+          <Input type="button" id="update" name="update" onClick={() => dispatch(updateCurrency(scraper))} value="Actualizar registro" />
+          <Input type="button" id="refresh" name="refresh" onClick={() => dispatch(fetchCurrencies())} value="Actualizar" />
         </InputContainer>
         </InputContainer>
       </FormContainer>
