@@ -15,6 +15,33 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
+## Create init data
+* `sh bin/load-init-data.sh`
+## Running servers on root folder
+If you have `python` as a command line
+
+Run Background:
+* `sh bin/py-run-background.sh`
+* or uncomment subprocess task at `<root_folter>/webscraper/__init__.py` doing that it will run background tasks beside django server
+
+Run React: 
+*  `sh bin/py-run-front.sh`
+Run Django:
+*  `sh bin/py-run-server.sh`
+
+If you have `python3.7` as a command line
+
+Run Background:
+* `sh bin/py37-run-background.sh`
+* or uncomment subprocess task at `<root_folter>/webscraper/__init__.py` doing that it will run background tasks beside django server
+
+Run React: 
+*  `sh bin/py37-run-front.sh`
+Run Django:
+*  `sh bin/py37-run-server.sh`
+
+If you have other alias, rename any of previous bash file properly
+ 
 ## API Endpoints (payload and response)
 
 ### `/api/scrapers`

@@ -17,11 +17,11 @@ from django.contrib import admin
 from django.urls import path
 
 from api.views import ScraperAPI
-from api.background import init_tasks
+# from api.background import init_tasks
 
 urlpatterns = [
     path('api/scrapers', ScraperAPI.as_view(), name='scrapers'),
     path('admin/', admin.site.urls),
 ]
 
-init_tasks(repeat=60, verbose_name='init', repeat_until=None)
+# init_tasks(repeat=60, verbose_name='init', repeat_until=None)
